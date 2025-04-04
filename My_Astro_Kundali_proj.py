@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_google_genai import GoogleGenerativeAI
-import swisseph as swe
+import pyswisseph as swe
 import json
 import requests
 import matplotlib.pyplot as plt
@@ -19,6 +19,10 @@ from matplotlib.patches import Polygon
 import svgwrite
 from svgwrite import cm, mm
 import math
+import numpy as np
+import matplotlib.pyplot as plt
+from click import style
+from matplotlib.patches import Polygon
 
 load_dotenv()
 
@@ -63,10 +67,7 @@ if "conversation" not in st.session_state:
 
 # First install: pip install pykundli
 
-import numpy as np
-import matplotlib.pyplot as plt
-from click import style
-from matplotlib.patches import Polygon
+
 
 
 # Kundali data
