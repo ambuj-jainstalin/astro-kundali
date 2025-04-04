@@ -6,7 +6,7 @@ import dotenv
 from dotenv import load_dotenv
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
-from langchain_google_genai import GoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 import pyswisseph as swe
 import json
 import requests
@@ -41,11 +41,7 @@ if "memory" not in st.session_state:
 if "first_message_sent" not in st.session_state:
     st.session_state.first_message_sent = False
 
-llm = GoogleGenerativeAI(
-        model="gemini-2.0-flash",
-        api_key=os.getenv("GOOGLE_API_KEY"),
-        stream=True
-    )
+llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.getenv("GOOGLE_API_KEY"))
 if "conversation" not in st.session_state:
     system_prompt="""You are an AI Astrologer. Follow these guidelines while responding:
     1. Focus Only on Astrology: Do not discuss topics unrelated to astrology. If a user asks, politely steer the conversation back.
