@@ -41,7 +41,7 @@ if "memory" not in st.session_state:
 if "first_message_sent" not in st.session_state:
     st.session_state.first_message_sent = False
 
-llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.getenv("GOOGLE_API_KEY"))
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=os.getenv("GOOGLE_API_KEY"),temperature=0.7,top_p=0.85)
 if "conversation" not in st.session_state:
     system_prompt="""You are an AI Astrologer. Follow these guidelines while responding:
     1. Focus Only on Astrology: Do not discuss topics unrelated to astrology. If a user asks, politely steer the conversation back.
