@@ -8,4 +8,6 @@ matplotlib==3.8.0
 numpy==1.26.0
 plotly==5.18.0
 svgwrite==1.4.3
-google-generativeai>=0.3.0  # Required dependency
+google-generativeai==0.8.4
+google-ai-generativelanguage==0.0.17
+  # Required dependency
