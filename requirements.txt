@@ -1,13 +1,10 @@
-streamlit==1.32.0
-python-dotenv==1.0.0
-langchain==0.3.2  # Updated version
-langchain-google-genai==2.1.2  # Compatible version
+langchain==0.3.2
+google-generativeai==0.7.0
+google-ai-generativelanguage==0.6.16
+langchain-google-genai==2.1.2
 pyswisseph==2.10.3.1
 requests==2.31.0
 matplotlib==3.8.0
 numpy==1.26.0
 plotly==5.18.0
 svgwrite==1.4.3
-google-generativeai==0.8.4
-google-ai-generativelanguage==0.0.17
-  # Required dependency
