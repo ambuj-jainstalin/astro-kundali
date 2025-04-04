@@ -1,7 +1,7 @@
 streamlit==1.32.0
 python-dotenv==1.0.0
-langchain==0.1.13  # Updated version
-langchain-google-genai==0.0.14  # Compatible version
+langchain==0.3.2  # Updated version
+langchain-google-genai==2.1.2  # Compatible version
 pyswisseph==2.10.3.1
 requests==2.31.0
 matplotlib==3.8.0
