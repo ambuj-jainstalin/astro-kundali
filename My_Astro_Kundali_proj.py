@@ -240,7 +240,7 @@ def create_chart(astro_data):
     #           bbox_to_anchor=(1.25, 1),
     #           loc='upper left')
 
-    plt.title('Lagna Chart', fontsize=16, fontweight='bold')
+    plt.title('Moon Chart', fontsize=16, fontweight='bold')
     fig.canvas.mpl_connect('resize_event', on_resize)
     return fig
 # def create_vedic_kundli(astro_data):
