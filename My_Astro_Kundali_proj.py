@@ -168,7 +168,7 @@ def create_chart(astro_data):
             house_contents[1].append(('Ascendant', data['Sign']))
         elif planet != 'Moon Nakshatra':
             house_contents[data.get('House', 0)].append((planet, data['Sign']))
-    print(house_contents)
+    # print(house_contents)
     house_patches = []
     text_objects = []
     # Draw and label all houses with dynamic sizing
@@ -271,7 +271,7 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
             lat = data['results'][0]['geometry']['lat']
             lon = data['results'][0]['geometry']['lng']
             st.session_state.location_data = {"lat": lat, "lon": lon, "place": place_of_birth}
-            print(lat, lon)
+            # print(lat, lon)
         else:
             st.error(f"Could not find coordinates for {place_of_birth}")
             return None
@@ -297,7 +297,7 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
 
     # Calculate Planetary Positions
     astro_data = {}
-    rahu_pos = None  # Store Rahu's position to calculate Ketu's position
+    # rahu_pos = None  # Store Rahu's position to calculate Ketu's position
     for planet, planet_id in planets.items():
         pos, speed = swe.calc_ut(jd, planet_id, flags=swe.FLG_SIDEREAL)
         degree = round(pos[0], 4)
@@ -307,12 +307,14 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
         if planet == "Rahu":
             rahu_pos = degree  # Store Rahu's position
             astro_data[planet] = {"Degree": degree, "Sign": sign, "Retrograde": retrograde}
-        elif planet == "Ketu":
-            # Calculate Ketu's position as 180° opposite Rahu
-            if rahu_pos is not None:
-                ketu_degree = (rahu_pos + 180) % 360
-                ketu_sign = zodiac_signs[int(ketu_degree // 30)]
-                astro_data[planet] = {"Degree": ketu_degree, "Sign": ketu_sign, "Retrograde": retrograde}
+
+
+            print(rahu_pos)
+            ketu_degree = round((rahu_pos + 180) % 360,4)
+            print(ketu_degree)
+            ketu_sign = zodiac_signs[int(ketu_degree // 30)]
+            print(ketu_sign)
+            astro_data["Ketu"] = {"Degree": ketu_degree, "Sign": ketu_sign, "Retrograde": retrograde}
         else:
             astro_data[planet] = {"Degree": degree, "Sign": sign, "Retrograde": retrograde}
 
@@ -350,14 +352,14 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
 
             astro_data[planet]["House"] = house_position
 
-    print("\nPlanet House Positions:")
-    print("-----------------------")
-    for planet, data in astro_data.items():
-        if planet != "Ascendant" and planet != "Moon Nakshatra":
-            house = data.get("House", "N/A")
-            sign = data.get("Sign", "N/A")
-            retrograde = "R" if data.get("Retrograde", False) else ""
-            print(f"{planet:8} - House {house:2} - {sign:12} {retrograde}")
+    # print("\nPlanet House Positions:")
+    # print("-----------------------")
+    # for planet, data in astro_data.items():
+    #     if planet != "Ascendant" and planet != "Moon Nakshatra":
+    #         house = data.get("House", "N/A")
+    #         sign = data.get("Sign", "N/A")
+    #         retrograde = "R" if data.get("Retrograde", False) else ""
+    #         print(f"{planet:8} - House {house:2} - {sign:12} {retrograde}")
     return astro_data
      #✅ Step 1: Show Form if No User Details
 if st.session_state.user_details is None:
