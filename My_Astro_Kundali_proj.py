@@ -23,12 +23,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from click import style
 from matplotlib.patches import Polygon
+from pytz import timezone
+
 
 load_dotenv()
 
 
 # ✅ Set Ephemeris Path
 swe.set_ephe_path("/path/to/ephemeris/")
+# swe_set_jpl_file("");
 
 # ✅ Initialize Session State
 if "user_details" not in st.session_state:
@@ -246,18 +249,31 @@ def create_chart(astro_data):
 # def create_vedic_kundli(astro_data):
 
 
-def calculate_chart(dob, time_of_birth, place_of_birth):
+def calculate_chart(dob, time_of_birth, place_of_birth, ayanamsa: str = 'ay_lahiri'):
     # Convert to Julian Date
+
+    SWE_AYANAMSA = {
+        "ay_fagan_bradley": 0,
+        "ay_lahiri": 1,
+        "ay_deluce": 2,
+        "ay_raman": 3,
+        "ay_krishnamurti": 5,
+        "ay_sassanian": 16,
+        "ay_aldebaran_15tau": 14,
+        "ay_galcenter_5sag": 17
+    }
+
     ist_datetime = datetime.combine(dob, time_of_birth)
     utc_datetime = ist_datetime - timedelta(hours=5, minutes=30)
 
     # Convert to Julian Day (UTC)
-    jd_utc = swe.utc_to_jd(
+    juld = swe.utc_to_jd(
         utc_datetime.year, utc_datetime.month, utc_datetime.day,
         utc_datetime.hour, utc_datetime.minute, utc_datetime.second,
-        swe.GREG_CAL
-    )
-    jd = jd_utc[1]
+        swe.GREG_CAL)[1]
+    swe.set_sid_mode(SWE_AYANAMSA[ayanamsa.lower()], 0, 0)  # Set the Ayanamsa # Set the Ayanamsa
+    flags = swe.FLG_SWIEPH + swe.FLG_SPEED + swe.FLG_SIDEREAL
+
 
     # Geocode birthplace using OpenCage
     oc_api_key = os.getenv("OPENCAGE_API_KEY")
@@ -270,6 +286,8 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
         if data['results'] and len(data['results']) > 0:
             lat = data['results'][0]['geometry']['lat']
             lon = data['results'][0]['geometry']['lng']
+            # lat=27.1767
+            # lon=78.0081
             st.session_state.location_data = {"lat": lat, "lon": lon, "place": place_of_birth}
             # print(lat, lon)
         else:
@@ -280,12 +298,23 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
         return None
 
     # Planets & Zodiac Signs
-    planets = {
+    SWE_AYANAMSA = {
+        "ay_fagan_bradley": 0,
+        "ay_lahiri": 1,
+        "ay_deluce": 2,
+        "ay_raman": 3,
+        "ay_krishnamurti": 5,
+        "ay_sassanian": 16,
+        "ay_aldebaran_15tau": 14,
+        "ay_galcenter_5sag": 17
+    }
+
+    PLANETS = {
         "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, "Venus": swe.VENUS, "Mars": swe.MARS,
         "Jupiter": swe.JUPITER, "Saturn": swe.SATURN, "Rahu": swe.MEAN_NODE,
         "Uranus": swe.URANUS, "Neptune": swe.NEPTUNE, "Pluto": swe.PLUTO
     }
-    zodiac_signs = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    ZODIAC_SIGNS= ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
                     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
     nakshatras = ["Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", "Punarvasu",
                   "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni", "Hasta", "Chitra",
@@ -293,73 +322,81 @@ def calculate_chart(dob, time_of_birth, place_of_birth):
                   "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"]
 
     # Set sidereal mode for Vedic calculations
-    swe.set_sid_mode(swe.SIDM_LAHIRI)
+    output = {}
+    try:
+        swe.set_ephe_path('/path/to/ephemeris/')
 
-    # Calculate Planetary Positions
-    astro_data = {}
-    # rahu_pos = None  # Store Rahu's position to calculate Ketu's position
-    for planet, planet_id in planets.items():
-        pos, speed = swe.calc_ut(jd, planet_id, flags=swe.FLG_SIDEREAL)
-        degree = round(pos[0], 4)
-        sign = zodiac_signs[int(degree // 30)]
-        retrograde = speed < 0
+        # juld = swe.utc_to_jd(year_utc, month_utc, day_utc, hour_utc, minute_utc, second_utc, swe.GREG_CAL)[1]
+        swe.set_sid_mode(SWE_AYANAMSA[ayanamsa.lower()], 0, 0)  # Set the Ayanamsa
+        flags = swe.FLG_SWIEPH + swe.FLG_SPEED + swe.FLG_SIDEREAL
 
-        if planet == "Rahu":
-            rahu_pos = degree  # Store Rahu's position
-            astro_data[planet] = {"Degree": degree, "Sign": sign, "Retrograde": retrograde}
+        # Calculate houses and ascendant
+        cusps, ascmc = swe.houses_ex(juld, lat, lon, b'B', flags)
+        ascendant_lon = ascmc[0]
+        output['Ascendant'] = {
+            'Degree': ascendant_lon % 30,
+            'Sign': ZODIAC_SIGNS[int(ascendant_lon / 30)],
+        }
+        print(ascendant_lon)
+
+        # Calculate planet positions
+        for planet_name, planet_code in PLANETS.items():
+            xx, ret = swe.calc_ut(juld, planet_code, flags)
+            longitude = xx[0]
+            sign_index = int(longitude / 30) % 12
+            output[planet_name.capitalize()] = {
+                'Degree': longitude % 30,
+                'Sign': ZODIAC_SIGNS[sign_index],
+                'Retrograde': xx[3] < 0,
+                'raw_longitude': longitude
+            }
+
+        # Calculate Rahu and Ketu
+        rahu_lon = output['Rahu']['raw_longitude']
+        ketu_lon = swe.degnorm(rahu_lon + 180)
+        ketu_sign_index = int(ketu_lon / 30) % 12
+        output['Ketu'] = {
+            'Degree': ketu_lon % 30,
+            'Sign': ZODIAC_SIGNS[ketu_sign_index],
+            'Retrograde': output['Rahu']['Retrograde'],
+            'raw_longitude': ketu_lon
+        }
+        del output['Rahu']['raw_longitude']
+        del output['Ketu']['raw_longitude']
+
+        # Calculate Moon Nakshatra (crude approximation)
+        if 'Moon' in output:
+            moon_lon = output['Moon']['raw_longitude']
+            nakshatra_number = int((moon_lon * 3) / 40) % 27 + 1
+            nakshatras = [
+                "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashirsha", "Ardra",
+                "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+                "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+                "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
+                "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+            ]
+            output['Moon Nakshatra'] = nakshatras[nakshatra_number - 1]
+            del output['Moon']['raw_longitude']
+
+        # Assign houses (Lagna Chart)
+        houses = [None] * 12
+        asc_sign_num = int(ascendant_lon / 30)
+        for i in range(12):
+            sign_index = (asc_sign_num + i) % 12
+            houses[i] = {'sign_index': sign_index, 'planets': []}
+
+        for planet_name, data in output.items():
+            if planet_name not in ['Ascendant', 'Moon Nakshatra']:
+                sign_index = ZODIAC_SIGNS.index(data['Sign'])
+                house_index = (sign_index - asc_sign_num) % 12
+                output[planet_name]['House'] = house_index + 1
 
 
-            print(rahu_pos)
-            ketu_degree = round((rahu_pos + 180) % 360,4)
-            print(ketu_degree)
-            ketu_sign = zodiac_signs[int(ketu_degree // 30)]
-            print(ketu_sign)
-            astro_data["Ketu"] = {"Degree": ketu_degree, "Sign": ketu_sign, "Retrograde": retrograde}
-        else:
-            astro_data[planet] = {"Degree": degree, "Sign": sign, "Retrograde": retrograde}
 
-    # Calculate Ascendant (Lagna)
-    cusps, ascmc = swe.houses(jd, lat, lon, b'W')  # 'A' = Alcabitius system
-    ascendant_degree = round(ascmc[0], 2)
-    ascendant_sign = zodiac_signs[int(ascendant_degree // 30)]
-    astro_data["Ascendant"] = {"Degree": ascendant_degree, "Sign": ascendant_sign}
-
-    # Calculate Moon Nakshatra (sidereal)
-    moon_pos, _ = swe.calc_ut(jd, swe.MOON, flags=swe.FLG_SIDEREAL)
-    moon_longitude = moon_pos[0]
-    nakshatra_index = int((moon_longitude / (360 / 27))) % 27
-    astro_data["Moon Nakshatra"] = nakshatras[nakshatra_index]
-
-    for planet, data in astro_data.items():
-        if planet != "Ascendant" and planet != "Moon Nakshatra":
-            planet_degree = data["Degree"]
-            house_position = 1
-
-            # Find which house the planet is in by comparing its position with house cusps
-            for i in range(1, 13):
-                next_cusp = cusps[i % 12] if i < 12 else cusps[0]
-                current_cusp = cusps[i - 1]
-
-                # Handle the case when a house spans 0 degrees (crosses from Pisces to Aries)
-                if next_cusp < current_cusp:
-                    if planet_degree >= current_cusp or planet_degree < next_cusp:
-                        house_position = i
-                        break
-                else:
-                    if current_cusp <= planet_degree < next_cusp:
-                        house_position = i
-                        break
-
-            astro_data[planet]["House"] = house_position
-
-    # print("\nPlanet House Positions:")
-    # print("-----------------------")
-    # for planet, data in astro_data.items():
-    #     if planet != "Ascendant" and planet != "Moon Nakshatra":
-    #         house = data.get("House", "N/A")
-    #         sign = data.get("Sign", "N/A")
-    #         retrograde = "R" if data.get("Retrograde", False) else ""
-    #         print(f"{planet:8} - House {house:2} - {sign:12} {retrograde}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {}
+    astro_data=output
     return astro_data
      #✅ Step 1: Show Form if No User Details
 if st.session_state.user_details is None:
